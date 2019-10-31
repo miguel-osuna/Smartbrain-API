@@ -1,97 +1,117 @@
 const express = require("express");
+const bcrypt = require("bcrypt-nodejs");
+const cors = require("cors");
 const app = express();
 
-// Simulated Database
-const database = {
-  users: [
-    {
-      id: "123",
-      name: "John",
-      email: "john@gmail.com",
-      password: "john123",
-      entries: 0,
-      joined: new Date()
-    },
-    {
-      id: "234",
-      name: "Sally",
-      email: "sally@gmail.com",
-      password: "sally123",
-      entries: 0,
-      joined: new Date()
-    }
-  ]
-};
+const knex = require("knex")({
+  client: "pg",
+  connection: {
+    host: "127.0.0.1", // localhost:5432
+    user: "miguelosuna",
+    password: "abcde12345",
+    database: "smart-brain"
+  }
+});
+
+// Users: id, name, email, entries, joined
+// Login: id, hash, email
 
 app.use(express.json());
+app.use(cors());
 
 // Root Route
 app.get("/", (req, res) => {
   console.log(req.body);
-  res.send(database.users);
+  res.json(database.users);
 });
 
 // Sign In Route
 app.post("/signin", (req, res) => {
   const { email, password } = req.body;
-  if (
-    email === database.users[0].email &&
-    password === database.users[0].password
-  ) {
-    res.status(200).json("Welcome " + database.users[0].name);
-  } else {
-    res.status(400).json("Error at login");
-  }
+  knex
+    .select("email", "hash")
+    .from("login")
+    .where("email", "=", email)
+    .then(data => {
+      const is_valid = bcrypt.compareSync(password, data[0].hash);
+      if (is_valid) {
+        return knex
+          .select("*")
+          .from("users")
+          .where("email", email)
+          .then(user => res.json(user[0]))
+          .catch(err => res.status(400).json("Unable to get user"));
+      } else {
+        res.status(400).json("Sorry, wrong credential");
+      }
+    })
+    .catch(err => res.status(400).json("Sorry, wrong email or password"));
 });
 
 // Register Route
 app.post("/register", (req, res) => {
   const { name, email, password } = req.body;
-  database.users.push({
-    id: "345",
-    name: name,
-    email: email,
-    password: password,
-    entries: 0,
-    joined: new Date()
-  });
-  console.log(database);
+  const hash = bcrypt.hashSync(password);
 
-  res.json(database.users[database.users.length - 1]);
+  knex
+    .transaction(trx => {
+      trx
+        .insert({
+          hash: hash,
+          email: email
+        })
+        .into("login")
+        .returning("email")
+        .then(login_email => {
+          return trx("users")
+            .returning("*")
+            .insert({
+              name: name,
+              email: login_email[0],
+              joined: new Date()
+            })
+            .then(user => {
+              res.json(user[0]);
+            });
+        })
+        .then(trx.commit)
+        .catch(trx.rollback);
+    })
+    .catch(err => res.status(400).json("This email is already registered"));
 });
 
 // Profile / User ID Route
 app.get("/profile/:id", (req, res) => {
   const { id } = req.params;
 
-  user = database.users.filter(user => {
-    return user.id === id;
-  });
-
-  if (user.length > 0) {
-    res.json(user[0]);
-  } else {
-    res.status(404).json("User not found");
-  }
+  knex
+    .select("*")
+    .from("users")
+    .where({ id: id })
+    .then(user => {
+      if (user.length) {
+        res.json(user[0]);
+      } else {
+        res.status(404).json("User not found");
+      }
+    });
 });
 
 // Image Route
 app.put("/image", (req, res) => {
   const { id } = req.body;
 
-  const user = database.users.filter(user => {
-    return user.id === id;
-  });
-
-  if (user.length > 0) {
-    user[0].entries++;
-    res.json(user[0].entries);
-  } else {
-    res.status(404).json("User not found");
-  }
+  knex("users")
+    .where("id", "=", id)
+    .increment("entries", 1)
+    .returning("entries")
+    .then(entries => {
+      res.json(entries[0]);
+    })
+    .catch(err => res.status(400).json("Unable to return entries"));
 });
 
 // localhost:3000
-app.listen(3000, () => {
-  console.log("App is running on localhost:3000");
+app.listen(5000, () => {
+  console.log("App is running on localhost:5000");
 });
