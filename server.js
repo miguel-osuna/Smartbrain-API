@@ -3,6 +3,12 @@ const bcrypt = require("bcrypt-nodejs");
 const cors = require("cors");
 const app = express();
 
+// Imported routes
+const handleSingIn = require("./controllers/signin.js");
+const image = require("./controllers/image.js");
+const handleRegister = require("./controllers/register.js");
+const handleProfile = require("./controllers/profile.js");
+
 const knex = require("knex")({
   client: "pg",
   connection: {
@@ -26,92 +32,21 @@ app.get("/", (req, res) => {
 });
 
 // Sign In Route
-app.post("/signin", (req, res) => {
-  const { email, password } = req.body;
-  knex
-    .select("email", "hash")
-    .from("login")
-    .where("email", "=", email)
-    .then(data => {
-      const is_valid = bcrypt.compareSync(password, data[0].hash);
-      if (is_valid) {
-        return knex
-          .select("*")
-          .from("users")
-          .where("email", email)
-          .then(user => res.json(user[0]))
-          .catch(err => res.status(400).json("Unable to get user"));
-      } else {
-        res.status(400).json("Sorry, wrong credential");
-      }
-    })
-    .catch(err => res.status(400).json("Sorry, wrong email or password"));
-});
+app.post("/signin", (req, res) => handleSingIn(req, res, knex, bcrypt));
 
 // Register Route
-app.post("/register", (req, res) => {
-  const { name, email, password } = req.body;
-  const hash = bcrypt.hashSync(password);
-
-  knex
-    .transaction(trx => {
-      trx
-        .insert({
-          hash: hash,
-          email: email
-        })
-        .into("login")
-        .returning("email")
-        .then(login_email => {
-          return trx("users")
-            .returning("*")
-            .insert({
-              name: name,
-              email: login_email[0],
-              joined: new Date()
-            })
-            .then(user => {
-              res.json(user[0]);
-            });
-        })
-        .then(trx.commit)
-        .catch(trx.rollback);
-    })
-    .catch(err => res.status(400).json("This email is already registered"));
-});
+app.post("/register", (req, res) => handleRegister(req, res, knex, bcrypt));
 
 // Profile / User ID Route
-app.get("/profile/:id", (req, res) => {
-  const { id } = req.params;
-
-  knex
-    .select("*")
-    .from("users")
-    .where({ id: id })
-    .then(user => {
-      if (user.length) {
-        res.json(user[0]);
-      } else {
-        res.status(404).json("User not found");
-      }
-    });
-});
+app.get("/profile/:id", (req, res) => handleProfile(req, res, knex));
 
 // Image Route
-app.put("/image", (req, res) => {
-  const { id } = req.body;
+app.put("/image", (req, res) => image.handleImage(req, res, knex));
 
-  knex("users")
-    .where("id", "=", id)
-    .increment("entries", 1)
-    .returning("entries")
-    .then(entries => {
-      res.json(entries[0]);
-    })
-    .catch(err => res.status(400).json("Unable to return entries"));
-});
+// Image Api
+app.post("/imageurl", (req, res) => image.handleApiCall(req, res));
 
 // localhost:3000
-app.listen(5000, () => {
-  console.log("App is running on localhost:5000");
+app.listen(process.env.PORT || 3000, () => {
+  console.log(`App is running on port ${process.env.PORT}`);
 });
