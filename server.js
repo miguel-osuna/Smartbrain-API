@@ -26,10 +26,7 @@ app.use(express.json());
 app.use(cors());
 
 // Root Route
-app.get("/", (req, res) => {
-  console.log(req.body);
-  res.json(database.users);
-});
+app.get("/", (req, res) => res.json("It's working"));
 
 // Sign In Route
 app.post("/signin", (req, res) => handleSingIn(req, res, knex, bcrypt));
