@@ -9,13 +9,12 @@ const image = require("./controllers/image.js");
 const handleRegister = require("./controllers/register.js");
 const handleProfile = require("./controllers/profile.js");
 
+// Database
 const knex = require("knex")({
   client: "pg",
   connection: {
-    host: "127.0.0.1", // localhost:5432
-    user: "miguelosuna",
-    password: "abcde12345",
-    database: "smart-brain"
+    connectionString: process.env.DATABSE_URL, // localhost:5432
+    ssl: true
   }
 });
 
