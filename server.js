@@ -3,13 +3,16 @@ const bcrypt = require("bcrypt-nodejs");
 const cors = require("cors");
 const app = express();
 
+// Load environmental variables
+require("dotenv").config();
+
 // Imported routes
 const handleSingIn = require("./controllers/signin.js");
 const image = require("./controllers/image.js");
 const handleRegister = require("./controllers/register.js");
 const handleProfile = require("./controllers/profile.js");
 
-// Database
+// Heroku Database
 const knex = require("knex")({
   client: "pg",
   connection: {

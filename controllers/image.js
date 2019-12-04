@@ -1,6 +1,9 @@
 // Clarifai module
 const Clarifai = require("clarifai");
 
+// Load environmental variables
+require("dotenv").config();
+
 // Initialize with API Key
 const app = new Clarifai.App({ apiKey: process.env.API_CLARIFAI });
 
