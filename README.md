@@ -47,9 +47,11 @@ Generate your [Clarifai API Key](https://portal.clarifai.com/signup?hsLang=en) t
 
 Create a .env with te content of .env_sample, replacing your server's url with the value in caps.
 
+```
 API_CLARIFAI = YOUR_API_KEY_HERE
 DATABASE_URL = YOUR_DATABASE_URL_HERE
 PORT = YOUR_PORT_HERE
+```
 
 ## :rocket: Deployment
 
