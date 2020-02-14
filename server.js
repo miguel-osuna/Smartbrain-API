@@ -11,7 +11,7 @@ require("dotenv").config();
 // Imported routes
 const signinAuthentication = require("./controllers/signin.js");
 const image = require("./controllers/image.js");
-const handleRegister = require("./controllers/register.js");
+const registerAuthentication = require("./controllers/register.js");
 const profile = require("./controllers/profile.js");
 const auth = require("./controllers/authorization.js");
 
@@ -53,7 +53,9 @@ app.post("/signin", (req, res) =>
 );
 
 // Register Route
-app.post("/register", (req, res) => handleRegister(req, res, knex, bcrypt));
+app.post("/register", (req, res) =>
+  registerAuthentication(req, res, knex, bcrypt, redisClient)
+);
 
 // Profile / User ID Route
 app.get("/profile/:id", auth.requireAuth, (req, res) =>
